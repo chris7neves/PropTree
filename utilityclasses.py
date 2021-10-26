@@ -45,7 +45,6 @@ class Statement:
     def __init__(self, expression):
 
         self.op_dict = {">":4, "&":2, "!":1, "+":3}
-        self.operators, self.output = self.Stack(), self.Queue()
         self.expression = expression
         
         self.infix = self.clean(self.expression)
@@ -90,6 +89,8 @@ class Statement:
 
     def infix_to_postfix(self, expression):
 
+        operators, output = self.Stack(), self.Queue()
+
         # Add a space after operands to enable end of operand tokenizing
         for op in self.operands:
             expression = expression.replace(op, op + " ")
@@ -100,18 +101,18 @@ class Statement:
         for c in expression:
 
             if self.is_op(c):
-                if self.operators.peek() == '!':
-                    while(self.operators.peek() == '!'): # While loop just to allow me to deal with multiple chained not operators
-                        self.output.push(self.operators.pop())
+                if operators.peek() == '!':
+                    while(operators.peek() == '!'): # While loop just to allow me to deal with multiple chained not operators
+                        output.push(operators.pop())
                 else:
-                    self.operators.push(c)
+                    operators.push(c)
 
             elif c == '(':
-                self.operators.push(c)
+                operators.push(c)
             elif c == ')':
-                while(self.operators.peek() != '('):
-                    self.output.push(self.operators.pop())
-                self.operators.pop() # Get rid of the (
+                while(operators.peek() != '('):
+                    output.push(operators.pop())
+                operators.pop() # Get rid of the (
 
             elif c == ' ': # Finished operand parsing, can add to output
                 operand = ''.join(curr_operand)
@@ -121,16 +122,16 @@ class Statement:
                     print("Stopping program execution.")
                     sys.exit()
 
-                self.output.push(operand)
+                output.push(operand)
                 curr_operand = []
             else: # Operand
                 curr_operand.append(c)
         
         # Pop out all remaining operators from the operator stack
-        while not self.operators.is_empty():
-            self.output.push(self.operators.pop())
+        while not operators.is_empty():
+            output.push(operators.pop())
 
-        return self.output.data
+        return output.data
 
     def get_postfix(self):
         return ''.join(self.postfix)
@@ -140,3 +141,7 @@ class Statement:
         Evaluates the postfix expression stored in the stack
         """
     
+        stack = self.Stack()
+
+        for c in self.postfix:
+            
