@@ -1,5 +1,7 @@
 import sys
+
 #https://www.includehelp.com/c/evaluation-of-postfix-expressions-using-stack-with-c-program.aspx#:~:text=Evaluation%20rule%20of%20a%20Postfix,the%20end%20of%20the%20expression.
+
 class Statement:
 
     class Stack:
@@ -136,12 +138,23 @@ class Statement:
     def get_postfix(self):
         return ''.join(self.postfix)
 
-    def eval_postfix(self):
-        """
-        Evaluates the postfix expression stored in the stack
-        """
+    def eval_postfix(self, values):
+        # """
+        # Evaluates the postfix expression stored in the stack
+        # Values stores the truth values for each of the propositions
+        # """
     
-        stack = self.Stack()
+        # stack = self.Stack()
 
-        for c in self.postfix:
-            
+        # for c in self.postfix:
+        pass
+
+
+# class TruthTable:
+
+#     def __init__(self, statement):
+#         self.statement = statement
+
+
+
+#     def generate_permutations(self):
