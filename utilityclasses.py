@@ -47,11 +47,13 @@ class Statement:
         self.op_dict = {">":4, "&":2, "!":1, "+":3}
         self.expression = expression
         
-        self.infix = self.clean(self.expression)
-        self.operands = self.extract_operands(self.infix)
-        self.postfix, self.sub_expressions = self.infix_to_postfix(self.infix)
+        self.infix = self._clean(self.expression)
+        self.operands = self._extract_operands(self.infix)
+        self.propositions = self.operands
+        self.propositions = [x for x in self.propositions if x != 'f' and x != 't']
+        self.postfix = self.infix_to_postfix(self.infix)
 
-    def clean(self, expression):
+    def _clean(self, expression):
 
         equivalencies = {"¬":"!", "∧":"&", "∨":"+", "→":">", "~":"!"}
 
@@ -64,7 +66,7 @@ class Statement:
         
         return expression
 
-    def is_op(self, text):
+    def _is_op(self, text):
         """
         Checks to see if text is an operator.
         """
@@ -73,7 +75,7 @@ class Statement:
             return True
         return False
     
-    def extract_operands(self, expression):
+    def _extract_operands(self, expression):
 
         for k in self.op_dict.keys():
             expression = expression.replace(k, ',')
@@ -97,7 +99,7 @@ class Statement:
 
         for c in expression:
 
-            if self.is_op(c):
+            if self._is_op(c):
                 if operators.peek() == '!':
                     while(operators.peek() == '!'): # While loop just to allow me to deal with multiple chained not operators
                         output.push(operators.pop())
@@ -129,12 +131,12 @@ class Statement:
         while not operators.is_empty():
             output.push(operators.pop())
 
-        return output.data, sub_expressions
+        return output.data
 
     def get_postfix(self):
         return ''.join(self.postfix)
 
-    def eval_logic(self, op, prop1, prop2=None) -> bool:
+    def _eval_logic(self, op, prop1, prop2=None) -> bool:
 
         if op == '!':
             return (not prop1)
@@ -167,12 +169,12 @@ class Statement:
         for c in postfix:
             if c == '!':
                 p = stack.pop()
-                stack.push(self.eval_logic(c, p))
+                stack.push(self._eval_logic(c, p))
 
-            elif self.is_op(c):
+            elif self._is_op(c):
                 p2 = stack.pop()
                 p1 = stack.pop()
-                stack.push(self.eval_logic(c, p1, p2))
+                stack.push(self._eval_logic(c, p1, p2))
 
             elif isinstance(c, bool):
                 stack.push(c)
@@ -201,7 +203,7 @@ class Statement:
                 stack.push(packaged)
                 infix.append(packaged)
 
-            elif self.is_op(c):
+            elif self._is_op(c):
                 p2 = stack.pop()
                 p1 = stack.pop()
                 packaged = self.package_exp(c, p1, p2)
@@ -234,15 +236,15 @@ class TruthTable:
         Values is the corresponding truth values for each proposition
         """
 
-        evaluated = {}
+        evaluated = []
 
         for token in tokenized:
             temp = Statement(token)
-            evaluated[token] = temp.eval_postfix(values)
+            evaluated.append([token, temp.eval_postfix(values)])
 
         return evaluated
 
-    def generate_permutations(self, vars, values=[True, False]):
+    def generate_permutations(self, vars, values=[True, False]) -> list:
         cols = []
         iter_every = 1
 
@@ -254,11 +256,10 @@ class TruthTable:
                 res.append([var, values[index]])
             iter_every = iter_every*2
             cols.append(res)
-        
-        cols = zip(*cols)
-        return list(cols)
 
-    def generate_table(self, postfix):
+        return [list(x) for x in zip(*cols)]
+
+    def generate_table(self, postfix) -> list:
         """
         postfix needs to be in list form
         """
@@ -272,22 +273,64 @@ class TruthTable:
 
         # Iterate through permutations, create values dict from the permutations, evaluate sub expression, append to list that is a copy of permutations
         
-        for row in permutations:
+        for i, row in enumerate(permutations):
             values = {k: v for (k, v) in row}
-
             # Evalutate sub expressions
-            results = []
+            results = self.evaluate_tokenized(tokens, values)
+            table[i].extend(results)
 
+        # Format the rows and columns, ready to be ingested by the print_table function      
 
+        return table
 
-
-        # Format the rows and columns, ready to be ingested by the print_table function
+    def print_table(self, table=None) -> None:
         
+        equivalencies = {"!":"¬", "&":"∧", "+":"∨", ">":"→", "!":"~", "f":"False", "t":"True"}
 
-        return 
+        if table is None:
+            table = self.table
 
-    def print_table(self):
-        return 
+        # Get whitespace numbers and print headers
+
+        whitespaces = []
+        for col in table[0]:
+            header = col[0]
+            for k, v in equivalencies.items():
+                header = header.replace(k, v)
+            print(" {:8} ".format(header), end='|')
+            whitespaces.append(len(header))
+        print('')
+
+        whitespaces = [8 if x<8 else x for x in whitespaces]
+
+        for w in whitespaces:
+            print("-"*(w+2), end='|')
+
+        for row in table:
+            print('')
+            for w, col in zip(whitespaces, row):
+                print(" {:8} ".format(str(col[1])), end='')
+                print(" "*(w-8), end='|')
+
+        print('')
+        for w in whitespaces:
+            print("-"*(w+2), end='-')
+    
+    def determine_type(self, table=None):
+
+        if table is None:
+            table = self.table
+
+        result = [row[-1][1] for row in table]
+
+        if len(set(result)) == 1 and result[0]:
+            t = "TAUTOLOGY" 
+        elif len(set(result)) == 1 and not result[0]:
+            t = "CONTRADICTION"
+        elif len(set(result)) == 2:
+            t = "CONTINGENCY"
+
+        return t
 
 
 
